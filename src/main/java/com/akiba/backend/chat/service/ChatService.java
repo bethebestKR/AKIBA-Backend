@@ -66,10 +66,15 @@ public class ChatService {
     }
 
     // 채팅방 나가기 (삭제)
-    public void leaveRoom(Long roomId) {
-        chatMessageRepository.deleteAll(chatMessageRepository.findByRoomIdOrderByCreatedAtAsc(roomId));
-        chatRoomMemberRepository.deleteAll(chatRoomMemberRepository.findByRoomId(roomId));
-        chatRoomRepository.deleteById(roomId);
+    public void leaveRoom(Long roomId, Long userId) {
+        // 나만 멤버에서 삭제
+        chatRoomMemberRepository.deleteByRoomIdAndUserId(roomId, userId);
+
+        // 멤버가 아무도 없으면 채팅방이랑 메시지도 삭제
+        if (chatRoomMemberRepository.findByRoomId(roomId).isEmpty()) {
+            chatMessageRepository.deleteAll(chatMessageRepository.findByRoomIdOrderByCreatedAtAsc(roomId));
+            chatRoomRepository.deleteById(roomId);
+        }
     }
 
     // 내 채팅방 목록
