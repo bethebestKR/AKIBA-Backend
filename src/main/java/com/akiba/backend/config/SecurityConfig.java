@@ -11,6 +11,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -21,6 +23,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
+                .cors(cors -> cors.configurationSource(request -> {
+                    var config = new org.springframework.web.cors.CorsConfiguration();
+                    config.setAllowedOrigins(List.of("*")); //추후 프론트 서버로 허용할 도메인 바꿔줘야함
+                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
+                    config.setAllowedHeaders(List.of("*"));
+                    return config;
+                }))
                 .csrf(csrf -> csrf.disable())
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider),
                         UsernamePasswordAuthenticationFilter.class)
@@ -33,7 +42,7 @@ public class SecurityConfig {
                         /* test끝나면
                             .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/users/login").permitAll()
-                        .anyRequest().authenticated()
+//                        .anyRequest().authenticated()
                         )
                         test할때는
                             .authorizeHttpRequests(auth -> auth
