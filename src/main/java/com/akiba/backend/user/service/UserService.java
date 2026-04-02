@@ -28,16 +28,24 @@ public class UserService {
     private final TokenProvider tokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    @Value("${naver.client-id}")
-    private String clientId;
+    @Value("${NAVER_CLIENT_ID_DEV}")
+    private String clientIdDev;
 
-    @Value("${naver.client-secret}")
-    private String clientSecret;
+    @Value("${NAVER_CLIENT_SECRET_DEV}")
+    private String clientSecretDev;
+
+    @Value("${NAVER_CLIENT_ID_PROD}")
+    private String clientIdProd;
+
+    @Value("${NAVER_CLIENT_SECRET_PROD}")
+    private String clientSecretProd;
 
     @Transactional
     public LoginResponse login(LoginRequest request) {
         // 1. 인가 코드로 네이버에 액세스 토큰 요청
-        String naverAccessToken = getNaverAccessToken(request.getCode(), request.getState());
+        String resolvedClientId = "prod".equals(request.getEnv()) ? clientIdProd : clientIdDev;
+        String resolvedClientSecret = "prod".equals(request.getEnv()) ? clientSecretProd : clientSecretDev;
+        String naverAccessToken = getNaverAccessToken(request.getCode(), request.getState(), resolvedClientId, resolvedClientSecret);
 
         // 2. 액세스 토큰으로 유저 정보 요청
         Map<String, Object> userInfo = getNaverUserInfo(naverAccessToken);
@@ -90,7 +98,7 @@ public class UserService {
 
     }
 
-    private String getNaverAccessToken(String code, String state) {
+    private String getNaverAccessToken(String code, String state, String clientId, String clientSecret) {
         RestTemplate restTemplate = new RestTemplate();
         String url = "https://nid.naver.com/oauth2.0/token"
                 + "?grant_type=authorization_code"

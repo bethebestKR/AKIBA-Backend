@@ -52,8 +52,10 @@ jobs:
               echo "DB_NAME=${{ env.DB_NAME }}"
               echo "DB_PASSWORD=${{ env.DB_PASSWORD }}"
               echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}"
-              echo "NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }}"
-              echo "NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }}"
+              echo "NAVER_CLIENT_ID_DEV=${{ secrets.NAVER_CLIENT_ID_DEV }}"
+              echo "NAVER_CLIENT_SECRET_DEV=${{ secrets.NAVER_CLIENT_SECRET_DEV }}"
+              echo "NAVER_CLIENT_ID_PROD=${{ secrets.NAVER_CLIENT_ID_PROD }}"
+              echo "NAVER_CLIENT_SECRET_PROD=${{ secrets.NAVER_CLIENT_SECRET_PROD }}"
               echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
               echo "TAG=${{ github.ref_name == 'main' && 'latest' || 'dev' }}"
             } > ${{ env.CONFIG_DIR }}/.env

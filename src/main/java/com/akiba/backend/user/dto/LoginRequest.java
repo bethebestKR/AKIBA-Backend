@@ -7,4 +7,5 @@ public class LoginRequest {
     private String provider;
     private String code;
     private String state;
+    private String env; // "dev" or "prod"
 }

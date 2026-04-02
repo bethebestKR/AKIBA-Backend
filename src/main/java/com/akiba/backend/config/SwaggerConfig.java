@@ -27,7 +27,8 @@ public class SwaggerConfig {
                 .components(new Components()
                         .addSecuritySchemes("bearerAuth", securityScheme))
                 .addSecurityItem(securityRequirement)
-                .addServersItem(new Server().url("https://dev-api.akibaha.shop")); //Swagger가 API 호출할 때 URL을 절대경로말고 상대경로로 변경
+                .addServersItem(new Server().url("https://dev-api.akibaha.shop"))//Swagger가 API 호출할 때 URL을 절대경로말고 상대경로로 변경
+                .addServersItem(new Server().url("http://localhost:8080"));
 
     }
 }
