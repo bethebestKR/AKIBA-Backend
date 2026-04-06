@@ -25,9 +25,11 @@ public class SecurityConfig {
         return http
                 .cors(cors -> cors.configurationSource(request -> {
                     var config = new org.springframework.web.cors.CorsConfiguration();
-                    config.setAllowedOrigins(List.of("*")); //추후 프론트 서버로 허용할 도메인 바꿔줘야함
+                    config.setAllowedOriginPatterns(List.of("*"));
+                    //추후 프론트 서버로 허용할 도메인 바꿔줘야함
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
                     config.setAllowedHeaders(List.of("*"));
+                    config.setAllowCredentials(true);
                     return config;
                 }))
                 .csrf(csrf -> csrf.disable())

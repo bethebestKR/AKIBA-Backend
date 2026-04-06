@@ -8,7 +8,8 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import java.util.List;
 
 @RestController
@@ -17,6 +18,7 @@ import java.util.List;
 public class ChatController {
 
     private final ChatService chatService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // 채팅방 생성
     @PostMapping("/rooms")
@@ -50,8 +52,9 @@ public class ChatController {
 
     // 웹소켓 메시지 전송
     @MessageMapping("/chat/message")
-    @SendTo("/topic/chat/{roomId}")
-    public ChatMessageResponse sendMessage(ChatMessageRequest request) {
-        return chatService.saveMessage(request);
+    public ChatMessageResponse sendMessage(ChatMessageRequest request, SimpMessageHeaderAccessor headerAccessor) {
+        ChatMessageResponse response = chatService.saveMessage(request);
+        messagingTemplate.convertAndSend("/topic/chat/" + request.getRoomId(), response);
+        return response;
     }
 }

@@ -8,6 +8,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import com.akiba.backend.config.jwt.TokenProvider;
+
 
 @RestController
 @RequestMapping("/api/users")
@@ -15,6 +17,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final TokenProvider tokenProvider;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
@@ -66,4 +69,17 @@ public class UserController {
         return ResponseEntity.ok(userService.refresh(request));
     }
 
+    @PostMapping("/test-login")
+    public ResponseEntity<LoginResponse> testLogin(@RequestParam Long userId) {
+        String accessToken = tokenProvider.generateAccessToken(userId);
+        String refreshToken = tokenProvider.generateRefreshToken(userId);
+
+        return ResponseEntity.ok(LoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .userId(userId)
+                .nickname("테스트유저")
+                .isNewUser(false)
+                .build());
+    }
 }

@@ -25,7 +25,7 @@ public class ChatService {
     public ChatRoomResponse createRoom(Long userId, ChatRoomRequest request) {
         // 마켓 채팅이면 기존 채팅방 있는지 확인
         if (request.getMarketPostId() != null) {
-            ChatRoom existing = chatRoomRepository.findByMarketPostId(request.getMarketPostId())
+            ChatRoom existing = chatRoomRepository.findByMarketPostIdAndBuyerId(request.getMarketPostId(), userId)
                     .orElse(null);
             if (existing != null) {
                 return ChatRoomResponse.builder()
@@ -40,6 +40,7 @@ public class ChatService {
         ChatRoom room = ChatRoom.builder()
                 .roomType(request.getRoomType())
                 .marketPostId(request.getMarketPostId())
+                .buyerId(userId)
                 .build();
         chatRoomRepository.save(room);
 
