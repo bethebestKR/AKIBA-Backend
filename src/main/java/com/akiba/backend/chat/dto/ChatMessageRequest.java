@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ChatMessageRequest {
     private Long roomId;
-    private Long senderId;
     private MessageType messageType;
     private String content;
     private Long mediaId;

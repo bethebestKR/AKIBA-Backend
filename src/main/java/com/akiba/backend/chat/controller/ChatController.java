@@ -52,9 +52,9 @@ public class ChatController {
 
     // 웹소켓 메시지 전송
     @MessageMapping("/chat/message")
-    public ChatMessageResponse sendMessage(ChatMessageRequest request, SimpMessageHeaderAccessor headerAccessor) {
-        ChatMessageResponse response = chatService.saveMessage(request);
+    public void sendMessage(ChatMessageRequest request, SimpMessageHeaderAccessor headerAccessor) {
+        Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+        ChatMessageResponse response = chatService.saveMessage(request, userId);
         messagingTemplate.convertAndSend("/topic/chat/" + request.getRoomId(), response);
-        return response;
     }
 }

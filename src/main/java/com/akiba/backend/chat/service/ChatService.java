@@ -9,6 +9,7 @@ import com.akiba.backend.chat.repository.ChatRoomMemberRepository;
 import com.akiba.backend.chat.repository.ChatRoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -67,6 +68,7 @@ public class ChatService {
     }
 
     // 채팅방 나가기 (삭제)
+    @Transactional
     public void leaveRoom(Long roomId, Long userId) {
         // 나만 멤버에서 삭제
         chatRoomMemberRepository.deleteByRoomIdAndUserId(roomId, userId);
@@ -93,10 +95,10 @@ public class ChatService {
     }
 
     // 메시지 저장 및 반환
-    public ChatMessageResponse saveMessage(ChatMessageRequest request) {
+    public ChatMessageResponse saveMessage(ChatMessageRequest request, Long senderId) {
         ChatMessage message = ChatMessage.builder()
                 .roomId(request.getRoomId())
-                .senderId(request.getSenderId())
+                .senderId(senderId)
                 .messageType(request.getMessageType())
                 .content(request.getContent())
                 .mediaId(request.getMediaId())
