@@ -41,20 +41,29 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            
             mkdir -p ${{ env.CONFIG_DIR }}
+            
+            # 1. 브랜치에 따라 사용할 값을 변수에 할당 (이름 통일 작업)
+            if [ "${{ github.ref_name }}" = "main" ]; then
+              FINAL_NAVER_ID="${{ secrets.NAVER_CLIENT_ID_PROD }}"
+              FINAL_NAVER_SECRET="${{ secrets.NAVER_CLIENT_SECRET_PROD }}"
+              CURRENT_TAG="latest"
+            else
+              FINAL_NAVER_ID="${{ secrets.NAVER_CLIENT_ID_DEV }}"
+              FINAL_NAVER_SECRET="${{ secrets.NAVER_CLIENT_SECRET_DEV }}"
+              CURRENT_TAG="dev"
+            fi
 
-            {
-              echo "DB_NAME=${{ env.DB_NAME }}"
-              echo "DB_PASSWORD=${{ env.DB_PASSWORD }}"
-              echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}"
-              echo "NAVER_CLIENT_ID_DEV=${{ secrets.NAVER_CLIENT_ID_DEV }}"
-              echo "NAVER_CLIENT_SECRET_DEV=${{ secrets.NAVER_CLIENT_SECRET_DEV }}"
-              echo "NAVER_CLIENT_ID_PROD=${{ secrets.NAVER_CLIENT_ID_PROD }}"
-              echo "NAVER_CLIENT_SECRET_PROD=${{ secrets.NAVER_CLIENT_SECRET_PROD }}"
-              echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
-              echo "TAG=${{ github.ref_name == 'main' && 'latest' || 'dev' }}"
-            } > ${{ env.CONFIG_DIR }}/.env
+            # 2. .env 파일 생성 (스프링이 찾는 'NAVER_CLIENT_ID'로 기록)
+            cat <<EOF > ${{ env.CONFIG_DIR }}/.env
+            DB_NAME=${{ env.DB_NAME }}
+            DB_PASSWORD=${{ env.DB_PASSWORD }}
+            DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            NAVER_CLIENT_ID=$FINAL_NAVER_ID
+            NAVER_CLIENT_SECRET=$FINAL_NAVER_SECRET
+            JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+            TAG=$CURRENT_TAG
+            EOF
 
             
             cd ${{ env.BASE_DIR }}/
