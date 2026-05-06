@@ -40,62 +40,135 @@ public class UserService {
     @Value("${NAVER_CLIENT_SECRET_PROD}")
     private String clientSecretProd;
 
+    @Value("${GOOGLE_CLIENT_ID}")
+    private String googleClientId;
+
+    @Value("${GOOGLE_CLIENT_SECRET}")
+    private String googleClientSecret;
+
     @Transactional
     public LoginResponse login(LoginRequest request) {
-        // 1. 인가 코드로 네이버에 액세스 토큰 요청
-        String resolvedClientId = "prod".equals(request.getEnv()) ? clientIdProd : clientIdDev;
-        String resolvedClientSecret = "prod".equals(request.getEnv()) ? clientSecretProd : clientSecretDev;
-        String naverAccessToken = getNaverAccessToken(request.getCode(), request.getState(), resolvedClientId, resolvedClientSecret);
+        String oauthId, email, nickname;
 
-        // 2. 액세스 토큰으로 유저 정보 요청
-        Map<String, Object> userInfo = getNaverUserInfo(naverAccessToken);
-        Map<String, Object> response = (Map<String, Object>) userInfo.get("response");
+        if ("GOOGLE".equals(request.getProvider())) {
+            // 구글 로그인
+            String googleAccessToken = getGoogleAccessToken(request.getCode(), googleClientId, googleClientSecret);
+            Map<String, Object> userInfo = getGoogleUserInfo(googleAccessToken);
 
-        String oauthId = (String) response.get("id");
-        String email = (String) response.get("email");
-        String nickname = (String) response.get("nickname");
+            oauthId = (String) userInfo.get("sub");
+            email = (String) userInfo.get("email");
+            nickname = (String) userInfo.get("name");
 
-        // 3. 신규 유저인지 확인
-        boolean isNewUser = !userRepository.findByProviderAndOauthId(AuthProvider.NAVER, oauthId).isPresent();
+            boolean isNewUser = !userRepository.findByProviderAndOauthId(AuthProvider.GOOGLE, oauthId).isPresent();
 
-        User user = userRepository.findByProviderAndOauthId(AuthProvider.NAVER, oauthId)
-                .orElseGet(() -> {
-                    User newUser = User.builder()
-                            .email(email)
-                            .provider(AuthProvider.NAVER)
-                            .oauthId(oauthId)
-                            .nickname(nickname)
-                            .build();
-                    User savedUser = userRepository.save(newUser);
+            User user = userRepository.findByProviderAndOauthId(AuthProvider.GOOGLE, oauthId)
+                    .orElseGet(() -> {
+                        User newUser = User.builder()
+                                .email(email)
+                                .provider(AuthProvider.GOOGLE)
+                                .oauthId(oauthId)
+                                .nickname(nickname)
+                                .build();
+                        User savedUser = userRepository.save(newUser);
+                        userProfileRepository.save(UserProfile.builder().user(savedUser).build());
+                        return savedUser;
+                    });
 
-                    UserProfile profile = UserProfile.builder()
-                            .user(savedUser)
-                            .build();
-                    userProfileRepository.save(profile);
+            String accessToken = tokenProvider.generateAccessToken(user.getUserId());
+            String refreshToken = tokenProvider.generateRefreshToken(user.getUserId());
 
-                    return savedUser;
-                });
+            refreshTokenRepository.findByUserId(user.getUserId())
+                    .ifPresentOrElse(
+                            token -> token.update(refreshToken),
+                            () -> refreshTokenRepository.save(new RefreshToken(user.getUserId(), refreshToken))
+                    );
 
-        // 4. JWT 토큰 발급
-        String accessToken = tokenProvider.generateAccessToken(user.getUserId());
-        String refreshToken = tokenProvider.generateRefreshToken(user.getUserId());
+            return LoginResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .userId(user.getUserId())
+                    .nickname(user.getNickname())
+                    .isNewUser(isNewUser)
+                    .build();
 
-        // 5. refreshToken DB 저장 (있으면 업데이트, 없으면 새로 저장)
-        refreshTokenRepository.findByUserId(user.getUserId())
-                .ifPresentOrElse(
-                        token -> token.update(refreshToken),
-                        () -> refreshTokenRepository.save(new RefreshToken(user.getUserId(), refreshToken))
-                );
+        } else {
+            // 네이버 로그인 (기존 코드)
+            String resolvedClientId = "prod".equals(request.getEnv()) ? clientIdProd : clientIdDev;
+            String resolvedClientSecret = "prod".equals(request.getEnv()) ? clientSecretProd : clientSecretDev;
+            String naverAccessToken = getNaverAccessToken(request.getCode(), request.getState(), resolvedClientId, resolvedClientSecret);
 
-        return LoginResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .userId(user.getUserId())
-                .nickname(user.getNickname())
-                .isNewUser(isNewUser)
-                .build();
+            Map<String, Object> userInfo = getNaverUserInfo(naverAccessToken);
+            Map<String, Object> response = (Map<String, Object>) userInfo.get("response");
 
+            oauthId = (String) response.get("id");
+            email = (String) response.get("email");
+            nickname = (String) response.get("nickname");
 
+            boolean isNewUser = !userRepository.findByProviderAndOauthId(AuthProvider.NAVER, oauthId).isPresent();
+
+            User user = userRepository.findByProviderAndOauthId(AuthProvider.NAVER, oauthId)
+                    .orElseGet(() -> {
+                        User newUser = User.builder()
+                                .email(email)
+                                .provider(AuthProvider.NAVER)
+                                .oauthId(oauthId)
+                                .nickname(nickname)
+                                .build();
+                        User savedUser = userRepository.save(newUser);
+                        userProfileRepository.save(UserProfile.builder().user(savedUser).build());
+                        return savedUser;
+                    });
+
+            String accessToken = tokenProvider.generateAccessToken(user.getUserId());
+            String refreshToken = tokenProvider.generateRefreshToken(user.getUserId());
+
+            refreshTokenRepository.findByUserId(user.getUserId())
+                    .ifPresentOrElse(
+                            token -> token.update(refreshToken),
+                            () -> refreshTokenRepository.save(new RefreshToken(user.getUserId(), refreshToken))
+                    );
+
+            return LoginResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .userId(user.getUserId())
+                    .nickname(user.getNickname())
+                    .isNewUser(isNewUser)
+                    .build();
+        }
+    }
+
+    private String getGoogleAccessToken(String code, String clientId, String clientSecret) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        String body = "grant_type=authorization_code"
+                + "&client_id=" + clientId
+                + "&client_secret=" + clientSecret
+                + "&redirect_uri=http://localhost:3000/oauth/callback/google"
+                + "&code=" + code;
+
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+                "https://oauth2.googleapis.com/token", entity, Map.class);
+
+        return (String) response.getBody().get("access_token");
+    }
+
+    private Map<String, Object> getGoogleUserInfo(String accessToken) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + accessToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                HttpMethod.GET,
+                entity,
+                Map.class
+        );
+        return response.getBody();
     }
 
     private String getNaverAccessToken(String code, String state, String clientId, String clientSecret) {
@@ -222,7 +295,5 @@ public class UserService {
                 .accessToken(newAccessToken)
                 .build();
     }
-
-
-
 }
+
