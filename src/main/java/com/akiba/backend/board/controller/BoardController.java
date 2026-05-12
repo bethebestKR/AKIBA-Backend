@@ -6,6 +6,7 @@ import com.akiba.backend.board.service.BoardService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -47,11 +48,10 @@ public class BoardController {
     @ResponseStatus(HttpStatus.CREATED)
     public BoardDtos.PostDetailResponse createPost(
             @PathVariable BoardCode boardCode,
-            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @AuthenticationPrincipal Long userId,
             @RequestBody @Valid BoardDtos.CreatePostRequest request
     ) {
-        requireBearerToken(authorization);
-        return boardService.createPost(boardCode, request);
+        return boardService.createPost(boardCode, requireUserId(userId), request);
     }
 
     @GetMapping("/{boardCode}/posts/{postId}")
@@ -66,11 +66,10 @@ public class BoardController {
     public BoardDtos.PostDetailResponse updatePost(
             @PathVariable BoardCode boardCode,
             @PathVariable Long postId,
-            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @AuthenticationPrincipal Long userId,
             @RequestBody @Valid BoardDtos.UpdatePostRequest request
     ) {
-        requireBearerToken(authorization);
-        return boardService.updatePost(boardCode, postId, request);
+        return boardService.updatePost(boardCode, postId, requireUserId(userId), request);
     }
 
     @DeleteMapping("/{boardCode}/posts/{postId}")
@@ -78,11 +77,9 @@ public class BoardController {
     public void deletePost(
             @PathVariable BoardCode boardCode,
             @PathVariable Long postId,
-            @RequestHeader(value = "Authorization", required = false) String authorization,
-            @RequestParam Long userId
+            @AuthenticationPrincipal Long userId
     ) {
-        requireBearerToken(authorization);
-        boardService.deletePost(boardCode, postId, userId);
+        boardService.deletePost(boardCode, postId, requireUserId(userId));
     }
 
     @PostMapping("/{boardCode}/posts/{postId}/comments")
@@ -90,11 +87,10 @@ public class BoardController {
     public BoardDtos.CommentResponse createComment(
             @PathVariable BoardCode boardCode,
             @PathVariable Long postId,
-            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @AuthenticationPrincipal Long userId,
             @RequestBody @Valid BoardDtos.CreateCommentRequest request
     ) {
-        requireBearerToken(authorization);
-        return boardService.createComment(boardCode, postId, request);
+        return boardService.createComment(boardCode, postId, requireUserId(userId), request);
     }
 
     @GetMapping("/{boardCode}/posts/{postId}/comments")
@@ -110,50 +106,43 @@ public class BoardController {
     public void deleteComment(
             @PathVariable BoardCode boardCode,
             @PathVariable Long commentId,
-            @RequestHeader(value = "Authorization", required = false) String authorization,
-            @RequestParam Long userId
+            @AuthenticationPrincipal Long userId
     ) {
-        requireBearerToken(authorization);
-        boardService.deleteComment(boardCode, commentId, userId);
+        boardService.deleteComment(boardCode, commentId, requireUserId(userId));
     }
 
     @PostMapping("/{boardCode}/posts/{postId}/like")
     public BoardDtos.PostDetailResponse toggleLike(
             @PathVariable BoardCode boardCode,
             @PathVariable Long postId,
-            @RequestHeader(value = "Authorization", required = false) String authorization,
-            @RequestBody @Valid BoardDtos.ToggleLikeRequest request
+            @AuthenticationPrincipal Long userId
     ) {
-        requireBearerToken(authorization);
-        return boardService.toggleLike(boardCode, postId, request);
+        return boardService.toggleLike(boardCode, postId, requireUserId(userId));
     }
 
     @PostMapping("/{boardCode}/comments/{commentId}/like")
     public BoardDtos.CommentLikeToggleResponse toggleCommentLike(
             @PathVariable BoardCode boardCode,
             @PathVariable Long commentId,
-            @RequestHeader(value = "Authorization", required = false) String authorization,
-            @RequestBody @Valid BoardDtos.ToggleCommentLikeRequest request
+            @AuthenticationPrincipal Long userId
     ) {
-        requireBearerToken(authorization);
-        return boardService.toggleCommentLike(boardCode, commentId, request);
+        return boardService.toggleCommentLike(boardCode, commentId, requireUserId(userId));
     }
 
     @PostMapping("/{boardCode}/posts/{postId}/votes")
     public BoardDtos.PostDetailResponse vote(
             @PathVariable BoardCode boardCode,
             @PathVariable Long postId,
-            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @AuthenticationPrincipal Long userId,
             @RequestBody @Valid BoardDtos.VoteRequest request
     ) {
-        requireBearerToken(authorization);
-        return boardService.vote(boardCode, postId, request);
+        return boardService.vote(boardCode, postId, requireUserId(userId), request);
     }
 
-    private void requireBearerToken(String authorization) {
-        if (authorization == null || !authorization.startsWith("Bearer ")
-                || authorization.substring("Bearer ".length()).trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유효한 액세스 토큰이 필요합니다.");
+    private Long requireUserId(Long userId) {
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
+        return userId;
     }
 }
