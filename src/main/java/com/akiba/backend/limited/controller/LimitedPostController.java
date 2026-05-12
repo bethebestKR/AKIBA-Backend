@@ -124,7 +124,7 @@ public class LimitedPostController {
     public ResponseEntity<Map<String, String>> changeStatus(
             @PathVariable Long postId,
             @AuthenticationPrincipal Long userId,
-            @RequestBody MarketPostStatusRequest request) {
+            @jakarta.validation.Valid @RequestBody MarketPostStatusRequest request) {
 
         marketPostService.changeStatus(postId, userId, request);
         return ResponseEntity.ok(Map.of("message", "상태가 변경되었습니다."));

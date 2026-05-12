@@ -4,12 +4,16 @@
 // ========================================================================
 package com.akiba.backend.auction.dto.request;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,10 +31,18 @@ public class AuctionPostUpdateRequest {
     private String specialType; // NONE, SPECIAL_BENEFIT, LIMITED_EDITION, BOTH
     private Long categoryId;
     @NotNull(message = "startPrice는 필수입니다.")
-    private Integer startPrice;
-    private Integer buyNowPrice; // 입찰 전에는 수정 가능
+    @DecimalMin(value = "0", inclusive = false)
+    @Digits(integer = 17, fraction = 2)
+    private BigDecimal startPrice;
+
+    @DecimalMin(value = "0", inclusive = false)
+    @Digits(integer = 17, fraction = 2)
+    private BigDecimal buyNowPrice; // 입찰 전에는 수정 가능
+
     @NotNull(message = "bidStep은 필수입니다.")
-    private Integer bidStep;
+    @DecimalMin(value = "0", inclusive = false)
+    @Digits(integer = 17, fraction = 2)
+    private BigDecimal bidStep;
     @NotNull(message = "endsAt은 필수입니다.")
     private LocalDateTime endsAt;
     @NotBlank(message = "deliveryMethod는 필수입니다.")

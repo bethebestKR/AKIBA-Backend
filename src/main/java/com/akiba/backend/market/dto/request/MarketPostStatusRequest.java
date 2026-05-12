@@ -4,6 +4,8 @@
 // ========================================================================
 package com.akiba.backend.market.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -11,5 +13,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class MarketPostStatusRequest {
 
-    private String status;  // "ACTIVE", "RESERVED", "SOLD", "CLOSED"
+    @NotBlank(message = "status 는 필수입니다.")
+    @Pattern(regexp = "^(ACTIVE|RESERVED|SOLD|CLOSED|DELETED)$",
+            message = "status 는 ACTIVE / RESERVED / SOLD / CLOSED / DELETED 중 하나여야 합니다.")
+    private String status;
 }

@@ -4,6 +4,7 @@ import com.akiba.backend.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -41,8 +42,8 @@ public class MarketPost {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(nullable = false)
-    private Integer price;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal price;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -97,7 +98,7 @@ public class MarketPost {
     }
 
     // 게시글 수정
-    public void update(MarketPostType type, String title, String content, Integer price,
+    public void update(MarketPostType type, String title, String content, BigDecimal price,
                        ProductCondition productCondition, MarketSpecialType specialType, Long categoryId,
                        String deliveryMethod, String purchaseSource,
                        Long receiptMediaId) {

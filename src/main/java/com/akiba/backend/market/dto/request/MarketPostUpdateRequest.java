@@ -4,6 +4,8 @@
 // ========================================================================
 package com.akiba.backend.market.dto.request;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -11,6 +13,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
@@ -28,7 +32,9 @@ public class MarketPostUpdateRequest {
     private String content;
 
     @NotNull(message = "price는 필수입니다.")
-    private Integer price;
+    @DecimalMin(value = "0", inclusive = false, message = "price 는 0 보다 커야 합니다.")
+    @Digits(integer = 17, fraction = 2)
+    private BigDecimal price;
 
     @NotBlank(message = "productCondition은 필수입니다.")
     @Pattern(regexp = "^(개봉|미개봉)$", message = "productCondition은 개봉/미개봉만 가능합니다.")
