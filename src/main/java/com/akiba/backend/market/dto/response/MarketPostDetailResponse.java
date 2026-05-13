@@ -6,9 +6,13 @@
 package com.akiba.backend.market.dto.response;
 
 import lombok.Builder;
+import java.math.BigDecimal;
 import lombok.Getter;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
+import java.math.BigDecimal;
 
 @Getter
 @Builder
@@ -18,7 +22,7 @@ public class MarketPostDetailResponse {
     private String type;
     private String title;
     private String content;
-    private Integer price;
+    private BigDecimal price;
     private String productCondition;
     private String specialType;
     private String status;

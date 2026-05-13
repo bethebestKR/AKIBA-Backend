@@ -24,7 +24,7 @@ public class ChatController {
     @PostMapping("/rooms")
     public ResponseEntity<ChatRoomResponse> createRoom(
             @AuthenticationPrincipal Long userId,
-            @RequestBody ChatRoomRequest request) {
+            @jakarta.validation.Valid @RequestBody ChatRoomRequest request) {
         return ResponseEntity.ok(chatService.createRoom(userId, request));
     }
 

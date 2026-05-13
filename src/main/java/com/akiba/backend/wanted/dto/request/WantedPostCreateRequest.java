@@ -5,12 +5,16 @@
 // ========================================================================
 package com.akiba.backend.wanted.dto.request;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
@@ -22,7 +26,9 @@ public class WantedPostCreateRequest {
     @NotBlank(message = "content는 필수입니다.")
     private String content;            // 설명
     @NotNull(message = "price는 필수입니다.")
-    private Integer price;             // 희망 가격
+    @DecimalMin(value = "0", inclusive = false, message = "price 는 0 보다 커야 합니다.")
+    @Digits(integer = 17, fraction = 2)
+    private BigDecimal price;             // 희망 가격
     private String specialType;        // NONE, SPECIAL_BENEFIT, LIMITED_EDITION, BOTH
     @NotBlank(message = "conditionTxt는 필수입니다.")
     @Pattern(regexp = "^(개봉|미개봉)$", message = "conditionTxt는 개봉/미개봉만 가능합니다.")

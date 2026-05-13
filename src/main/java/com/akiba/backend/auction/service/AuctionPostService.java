@@ -63,6 +63,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -174,7 +175,7 @@ public class AuctionPostService {
         marketPost.increaseViewCount();
 
         // 현재 최고 입찰가
-        Integer currentPrice = auctionBidRepository
+        BigDecimal currentPrice = auctionBidRepository
                 .findTopByPostIdOrderByBidAmountDesc(postId)
                 .map(AuctionBid::getBidAmount)
                 .orElse(null);
@@ -308,7 +309,10 @@ public class AuctionPostService {
     public BidResponse placeBid(Long postId, Long userId, BidRequest request) {
 
         MarketPost marketPost = findMarketPostOrThrow(postId);
-        AuctionPost auctionPost = findAuctionPostOrThrow(postId);
+
+        // 🔒 비관적 락으로 AuctionPost 조회 — 동시 입찰 직렬화
+        AuctionPost auctionPost = auctionPostRepository.findByIdForUpdate(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "경매 글이 없습니다."));
 
         // 본인 경매에 입찰 불가
         if (marketPost.getUserId().equals(userId)) {
@@ -325,20 +329,20 @@ public class AuctionPostService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "경매 시간이 종료되었습니다.");
         }
 
-        // 현재 최고 입찰가 확인
+        // 현재 최고 입찰가 확인 (락 보유 중이라 안전)
         Optional<AuctionBid> topBid = auctionBidRepository
                 .findTopByPostIdOrderByBidAmountDesc(postId);
 
-        int minimumBid;
+        BigDecimal minimumBid;
         if (topBid.isPresent()) {
             // 기존 입찰이 있으면: 최고가 + bidStep 이상
-            minimumBid = topBid.get().getBidAmount() + auctionPost.getBidStep();
+            minimumBid = topBid.get().getBidAmount().add(auctionPost.getBidStep());
         } else {
             // 첫 입찰이면: 시작가 이상
             minimumBid = auctionPost.getStartPrice();
         }
 
-        if (request.getBidAmount() < minimumBid) {
+        if (request.getBidAmount().compareTo(minimumBid) < 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "입찰 금액은 " + minimumBid + "원 이상이어야 합니다.");
         }
@@ -352,14 +356,14 @@ public class AuctionPostService {
 
         AuctionBid savedBid = auctionBidRepository.save(bid);
 
-        // 입찰 수 증가
-        auctionPost.increaseBidCount();
+        // 입찰 수 원자적 증가 (UPDATE ... bid_count = bid_count + 1)
+        auctionPostRepository.incrementBidCount(postId);
 
         return BidResponse.builder()
                 .bidId(savedBid.getBidId())
                 .postId(postId)
                 .bidAmount(savedBid.getBidAmount())
-                .bidCount(auctionPost.getBidCount())
+                .bidCount(auctionPost.getBidCount() + 1)
                 .bidAt(savedBid.getCreatedAt())
                 .message("입찰이 완료되었습니다.")
                 .build();
@@ -376,7 +380,10 @@ public class AuctionPostService {
     public BidResponse buyNow(Long postId, Long userId) {
 
         MarketPost marketPost = findMarketPostOrThrow(postId);
-        AuctionPost auctionPost = findAuctionPostOrThrow(postId);
+
+        // 🔒 비관적 락 — 즉시구매와 입찰 동시 충돌 방지
+        AuctionPost auctionPost = auctionPostRepository.findByIdForUpdate(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "경매 글이 없습니다."));
 
         // 본인 경매 불가
         if (marketPost.getUserId().equals(userId)) {
@@ -406,7 +413,9 @@ public class AuctionPostService {
                 .build();
 
         AuctionBid savedBid = auctionBidRepository.save(bid);
-        auctionPost.increaseBidCount();
+
+        // 입찰 수 원자적 증가
+        auctionPostRepository.incrementBidCount(postId);
 
         // 경매 종료 처리
         auctionPost.endAuction(userId, auctionPost.getBuyNowPrice());
@@ -416,7 +425,7 @@ public class AuctionPostService {
                 .bidId(savedBid.getBidId())
                 .postId(postId)
                 .bidAmount(auctionPost.getBuyNowPrice())
-                .bidCount(auctionPost.getBidCount())
+                .bidCount(auctionPost.getBidCount() + 1)
                 .bidAt(savedBid.getCreatedAt())
                 .message("즉시구매가 완료되었습니다.")
                 .build();
@@ -431,7 +440,7 @@ public class AuctionPostService {
         AuctionPost auctionPost = findAuctionPostOrThrow(postId);
 
         // getCurrentHighestBid 대신 직접 조회
-        int currentHighest = auctionBidRepository
+        BigDecimal currentHighest = auctionBidRepository
                 .findTopByPostIdOrderByBidAmountDesc(postId)
                 .map(AuctionBid::getBidAmount)
                 .orElse(auctionPost.getStartPrice());
@@ -453,7 +462,7 @@ public class AuctionPostService {
                             .bidAmount(bid.getBidAmount())       // bidPrice → bidAmount
                             .createdAt(bid.getCreatedAt() != null ?
                                     bid.getCreatedAt().toString().replace("T", " ") : null)
-                            .isHighest(bid.getBidAmount() == currentHighest)
+                            .isHighest(bid.getBidAmount().compareTo(currentHighest) == 0)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -464,7 +473,7 @@ public class AuctionPostService {
                 .currentHighestBid(currentHighest)
                 .startPrice(auctionPost.getStartPrice())
                 .bidStep(auctionPost.getBidStep())
-                .nextMinBid(currentHighest + auctionPost.getBidStep())
+                .nextMinBid(currentHighest.add(auctionPost.getBidStep()))
                 .bids(bidItems)
                 .build();
     }
@@ -595,7 +604,7 @@ public class AuctionPostService {
                         return null;
                     }
 
-                    Integer currentPrice = auctionBidRepository
+                    BigDecimal currentPrice = auctionBidRepository
                             .findTopByPostIdOrderByBidAmountDesc(ap.getPostId())
                             .map(AuctionBid::getBidAmount)
                             .orElse(ap.getStartPrice());
@@ -788,7 +797,7 @@ public class AuctionPostService {
 
     private AuctionPostListResponse toListResponse(MarketPost post) {
         AuctionPost auctionPost = auctionPostRepository.findById(post.getPostId()).orElse(null);
-        Integer currentPrice = auctionBidRepository
+        BigDecimal currentPrice = auctionBidRepository
                 .findTopByPostIdOrderByBidAmountDesc(post.getPostId())
                 .map(AuctionBid::getBidAmount).orElse(null);
 
@@ -796,7 +805,7 @@ public class AuctionPostService {
                 .postId(post.getPostId())
                 .title(post.getTitle())
                 .specialType(post.getSpecialType().name())
-                .startPrice(auctionPost != null ? auctionPost.getStartPrice() : 0)
+                .startPrice(auctionPost != null ? auctionPost.getStartPrice() : BigDecimal.ZERO)
                 .currentPrice(currentPrice)
                 .buyNowPrice(auctionPost != null ? auctionPost.getBuyNowPrice() : null)
                 .bidCount(auctionPost != null ? auctionPost.getBidCount() : 0)
@@ -810,7 +819,7 @@ public class AuctionPostService {
 
     private AuctionPostSimpleResponse toSimpleResponse(MarketPost post) {
         AuctionPost auctionPost = auctionPostRepository.findById(post.getPostId()).orElse(null);
-        Integer currentPrice = auctionBidRepository
+        BigDecimal currentPrice = auctionBidRepository
                 .findTopByPostIdOrderByBidAmountDesc(post.getPostId())
                 .map(AuctionBid::getBidAmount).orElse(null);
 
@@ -818,7 +827,7 @@ public class AuctionPostService {
                 .postId(post.getPostId())
                 .title(post.getTitle())
                 .specialType(post.getSpecialType().name())
-                .startPrice(auctionPost != null ? auctionPost.getStartPrice() : 0)
+                .startPrice(auctionPost != null ? auctionPost.getStartPrice() : BigDecimal.ZERO)
                 .currentPrice(currentPrice)
                 .bidCount(auctionPost != null ? auctionPost.getBidCount() : 0)
                 .viewCount(post.getViewCount())
@@ -829,7 +838,7 @@ public class AuctionPostService {
 
     private MyAuctionResponse toMyAuctionResponse(MarketPost post) {
         AuctionPost auctionPost = auctionPostRepository.findById(post.getPostId()).orElse(null);
-        int currentHighestBid = auctionBidRepository
+        BigDecimal currentHighestBid = auctionBidRepository
                 .findTopByPostIdOrderByBidAmountDesc(post.getPostId())
                 .map(AuctionBid::getBidAmount)
                 .orElse(auctionPost != null ? auctionPost.getStartPrice() : post.getPrice());

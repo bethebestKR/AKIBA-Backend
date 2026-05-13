@@ -5,7 +5,9 @@
 package com.akiba.backend.market.dto.response;
 
 import lombok.Builder;
+import java.math.BigDecimal;
 import lombok.Getter;
+import java.math.BigDecimal;
 
 @Getter
 @Builder
@@ -13,7 +15,7 @@ public class MarketPostSimpleResponse {
 
     private Long postId;
     private String title;
-    private Integer price;
+    private BigDecimal price;
     private String thumbnailUrl;
     private String type;
     private String specialType;

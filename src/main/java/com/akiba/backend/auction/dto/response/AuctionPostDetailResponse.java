@@ -6,9 +6,13 @@
 package com.akiba.backend.auction.dto.response;
 
 import lombok.Builder;
+import java.math.BigDecimal;
 import lombok.Getter;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
+import java.math.BigDecimal;
 
 @Getter
 @Builder
@@ -19,10 +23,10 @@ public class AuctionPostDetailResponse {
     private String content;
     private String productCondition;
     private String specialType;
-    private int startPrice;
-    private Integer currentPrice;       // 현재 최고 입찰가
-    private Integer buyNowPrice;
-    private int bidStep;
+    private BigDecimal startPrice;
+    private BigDecimal currentPrice;       // 현재 최고 입찰가
+    private BigDecimal buyNowPrice;
+    private BigDecimal bidStep;
     private int bidCount;
     private String deliveryMethod;
     private String purchaseSource;
@@ -67,7 +71,7 @@ public class AuctionPostDetailResponse {
     @Builder
     public static class BidHistoryResponse {
         private String bidderNickname;
-        private int bidAmount;
+        private BigDecimal bidAmount;
         private LocalDateTime bidAt;
     }
 }
