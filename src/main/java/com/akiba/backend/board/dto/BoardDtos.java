@@ -20,7 +20,6 @@ public class BoardDtos {
     }
 
     public record CreatePostRequest(
-            @NotNull Long userId,
             @NotBlank @Size(max = 200) String title,
             @NotBlank String content,
             @Size(max = 10) List<@NotBlank String> imageUrls,
@@ -30,29 +29,17 @@ public class BoardDtos {
     }
 
     public record CreateCommentRequest(
-            @NotNull Long userId,
             Long parentId,
             @NotBlank @Size(max = 1000) String content
     ) {
     }
 
     public record UpdatePostRequest(
-            @NotNull Long userId,
             @NotBlank @Size(max = 200) String title,
             @NotBlank String content,
             @Size(max = 10) List<@NotBlank String> imageUrls,
             @Size(max = 500) String saleOrAuctionLink,
             List<@NotBlank String> hashtags
-    ) {
-    }
-
-    public record ToggleLikeRequest(
-            @NotNull Long userId
-    ) {
-    }
-
-    public record ToggleCommentLikeRequest(
-            @NotNull Long userId
     ) {
     }
 
@@ -64,7 +51,6 @@ public class BoardDtos {
     }
 
     public record VoteRequest(
-            @NotNull Long userId,
             @NotNull AuthenticityVoteChoice choice
     ) {
     }
