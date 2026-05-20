@@ -60,6 +60,8 @@ jobs:
               echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
               echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
               echo "TAG=${{ github.ref_name == 'main' && 'latest' || 'dev' }}"
+              echo "DISCORD_WEBHOOK_URL=${{ secrets.DISCORD_WEBHOOK_URL }}" 
+
             } > ${{ env.CONFIG_DIR }}/.env
 
             cd ${{ env.BASE_DIR }}

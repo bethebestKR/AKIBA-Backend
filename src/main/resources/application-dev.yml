@@ -1,6 +1,10 @@
 spring:
   datasource:
     url: jdbc:mysql://db-dev:3306/${DB_NAME} #배포용 ,서버용
-#    url: jdbc:mysql://localhost:3306/${DB_NAME}
+#    url: jdbc:mysql://localhost:3306/${DB_NAME} #local용
     username: root
     password: ${DB_PASSWORD}
+
+discord:
+  webhook:
+    url: ${DISCORD_WEBHOOK_URL}
