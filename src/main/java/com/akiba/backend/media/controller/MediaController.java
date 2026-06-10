@@ -24,10 +24,14 @@ public class MediaController {
     }
 
     @GetMapping("/files/{mediaId}")
-    public ResponseEntity<Void> getFile(@PathVariable Long mediaId) {
+    public ResponseEntity<MediaUploadResponse> getFile(@PathVariable Long mediaId) {
         MediaFile mediaFile = mediaService.getMedia(mediaId);
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .header(HttpHeaders.LOCATION, mediaFile.getUrl())
-                .build();
+        return ResponseEntity.ok(MediaUploadResponse.builder()
+                .mediaId(mediaFile.getMediaId())
+                .url(mediaFile.getUrl())
+                .originalFilename(mediaFile.getOriginalFilename())
+                .contentType(mediaFile.getContentType())
+                .fileSize(mediaFile.getFileSize())
+                .build());
     }
 }
