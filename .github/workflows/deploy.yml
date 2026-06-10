@@ -60,7 +60,11 @@ jobs:
               echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
               echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
               echo "TAG=${{ github.ref_name == 'main' && 'latest' || 'dev' }}"
-              echo "DISCORD_WEBHOOK_URL=${{ secrets.DISCORD_WEBHOOK_URL }}" 
+              echo "DISCORD_WEBHOOK_URL=${{ secrets.DISCORD_WEBHOOK_URL }}"
+              echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}"
+              echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+              echo "AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }}"
+              echo "AWS_S3_REGION=${{ secrets.AWS_S3_REGION }}"
 
             } > ${{ env.CONFIG_DIR }}/.env
 
