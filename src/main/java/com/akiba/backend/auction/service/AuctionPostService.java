@@ -308,11 +308,11 @@ public class AuctionPostService {
     @Transactional
     public BidResponse placeBid(Long postId, Long userId, BidRequest request) {
 
-        MarketPost marketPost = findMarketPostOrThrow(postId);
-
-        // 🔒 비관적 락으로 AuctionPost 조회 — 동시 입찰 직렬화
+        // 🔒 비관적 락으로 AuctionPost 먼저 조회 — 락 획득 시점에 read view를 고정시켜 동시 입찰 직렬화
         AuctionPost auctionPost = auctionPostRepository.findByIdForUpdate(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "경매 글이 없습니다."));
+
+        MarketPost marketPost = findMarketPostOrThrow(postId);
 
         // 본인 경매에 입찰 불가
         if (marketPost.getUserId().equals(userId)) {
@@ -379,11 +379,11 @@ public class AuctionPostService {
     @Transactional
     public BidResponse buyNow(Long postId, Long userId) {
 
-        MarketPost marketPost = findMarketPostOrThrow(postId);
-
-        // 🔒 비관적 락 — 즉시구매와 입찰 동시 충돌 방지
+        // 🔒 비관적 락 먼저 — 락 획득 시점에 read view를 고정시켜 즉시구매와 입찰 동시 충돌 방지
         AuctionPost auctionPost = auctionPostRepository.findByIdForUpdate(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "경매 글이 없습니다."));
+
+        MarketPost marketPost = findMarketPostOrThrow(postId);
 
         // 본인 경매 불가
         if (marketPost.getUserId().equals(userId)) {

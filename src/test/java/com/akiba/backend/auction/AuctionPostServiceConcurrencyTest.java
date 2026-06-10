@@ -131,7 +131,7 @@ class AuctionPostServiceConcurrencyTest {
         int threadCount = 100;
         BigDecimal sameAmount = BigDecimal.valueOf(11000);
 
-        ExecutorService executor = Executors.newFixedThreadPool(32);
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch readyLatch = new CountDownLatch(threadCount);
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch doneLatch = new CountDownLatch(threadCount);
