@@ -5,20 +5,17 @@ import com.akiba.backend.media.dto.response.MediaUploadResponse;
 import com.akiba.backend.media.repository.MediaFileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.UUID;
 
 @Service
@@ -27,9 +24,13 @@ import java.util.UUID;
 public class MediaService {
 
     private final MediaFileRepository mediaFileRepository;
+    private final S3Client s3Client;
 
-    @Value("${app.media.upload-dir:/tmp/akiba-uploads}")
-    private String uploadDir;
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucket;
+
+    @Value("${cloud.aws.s3.region}")
+    private String region;
 
     @Transactional
     public MediaUploadResponse upload(MultipartFile file) {
@@ -37,30 +38,35 @@ public class MediaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "업로드할 파일이 없습니다.");
         }
 
-        String originalName = StringUtils.cleanPath(file.getOriginalFilename() == null ? "file" : file.getOriginalFilename());
+        String originalName = StringUtils.cleanPath(
+                file.getOriginalFilename() == null ? "file" : file.getOriginalFilename());
         String extension = extractExtension(originalName);
-        String storedName = UUID.randomUUID() + extension;
-        Path directory = Paths.get(uploadDir);
-        Path target = directory.resolve(storedName).normalize();
+        String s3Key = "uploads/" + UUID.randomUUID() + extension;
 
         try {
-            Files.createDirectories(directory);
-            file.transferTo(target);
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(s3Key)
+                            .contentType(file.getContentType())
+                            .build(),
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
+            );
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "파일 저장에 실패했습니다.");
         }
 
+        String s3Url = "https://" + bucket + ".s3." + region + ".amazonaws.com/" + s3Key;
+
         MediaFile mediaFile = MediaFile.builder()
-                .url("")
-                .storagePath(target.toString())
+                .url(s3Url)
+                .storagePath(s3Key)
                 .originalFilename(originalName)
                 .contentType(file.getContentType())
                 .fileSize(file.getSize())
                 .build();
 
         MediaFile saved = mediaFileRepository.save(mediaFile);
-        saved.updateUrl("/api/media/files/" + saved.getMediaId());
-        saved = mediaFileRepository.save(saved);
 
         return MediaUploadResponse.builder()
                 .mediaId(saved.getMediaId())
@@ -69,20 +75,6 @@ public class MediaService {
                 .contentType(saved.getContentType())
                 .fileSize(saved.getFileSize())
                 .build();
-    }
-
-    public Resource loadAsResource(Long mediaId) {
-        MediaFile mediaFile = mediaFileRepository.findById(mediaId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "미디어를 찾을 수 없습니다."));
-        try {
-            Resource resource = new UrlResource(Paths.get(mediaFile.getStoragePath()).toUri());
-            if (!resource.exists() || !resource.isReadable()) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
-            }
-            return resource;
-        } catch (MalformedURLException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "파일 경로가 올바르지 않습니다.");
-        }
     }
 
     public MediaFile getMedia(Long mediaId) {
