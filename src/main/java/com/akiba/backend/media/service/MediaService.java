@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -75,6 +76,18 @@ public class MediaService {
                 .contentType(saved.getContentType())
                 .fileSize(saved.getFileSize())
                 .build();
+    }
+
+    public byte[] downloadFromS3(Long mediaId) {
+        MediaFile mediaFile = mediaFileRepository.findById(mediaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "미디어를 찾을 수 없습니다."));
+
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(mediaFile.getStoragePath())
+                .build();
+
+        return s3Client.getObjectAsBytes(getObjectRequest).asByteArray();
     }
 
     public MediaFile getMedia(Long mediaId) {

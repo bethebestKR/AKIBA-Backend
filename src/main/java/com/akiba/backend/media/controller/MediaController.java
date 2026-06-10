@@ -24,14 +24,18 @@ public class MediaController {
     }
 
     @GetMapping("/files/{mediaId}")
-    public ResponseEntity<MediaUploadResponse> getFile(@PathVariable Long mediaId) {
+    public ResponseEntity<byte[]> getFile(@PathVariable Long mediaId) {
         MediaFile mediaFile = mediaService.getMedia(mediaId);
-        return ResponseEntity.ok(MediaUploadResponse.builder()
-                .mediaId(mediaFile.getMediaId())
-                .url(mediaFile.getUrl())
-                .originalFilename(mediaFile.getOriginalFilename())
-                .contentType(mediaFile.getContentType())
-                .fileSize(mediaFile.getFileSize())
-                .build());
+        byte[] imageBytes = mediaService.downloadFromS3(mediaId);
+
+        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        if (mediaFile.getContentType() != null && !mediaFile.getContentType().isBlank()) {
+            mediaType = MediaType.parseMediaType(mediaFile.getContentType());
+        }
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + mediaFile.getOriginalFilename() + "\"")
+                .body(imageBytes);
     }
 }
