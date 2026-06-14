@@ -171,3 +171,4 @@ Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 | 구해요 | `/api/wanted` |
 | 커뮤니티 | `/api/boards` |
 | 미디어 | `/api/media` |
+
