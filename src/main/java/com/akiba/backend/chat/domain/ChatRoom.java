@@ -24,6 +24,8 @@ public class ChatRoom {
     // 마켓 채팅일 경우만 사용
     private Long marketPostId;
 
+    private Long buyerId;
+
     private LocalDateTime createdAt;
 
     @PrePersist

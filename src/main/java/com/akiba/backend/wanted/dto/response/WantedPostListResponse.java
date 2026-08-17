@@ -5,8 +5,11 @@
 package com.akiba.backend.wanted.dto.response;
 
 import lombok.Builder;
+import java.math.BigDecimal;
 import lombok.Getter;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 @Getter
 @Builder
@@ -15,7 +18,7 @@ public class WantedPostListResponse {
     private Long postId;
     private String title;
     private String contentPreview;       // 내용 미리보기 (앞 50자)
-    private Integer price;
+    private BigDecimal price;
     private String conditionTxt;
     private String specialType;
     private String deliveryMethod;

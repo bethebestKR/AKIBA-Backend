@@ -2,6 +2,8 @@ package com.akiba.backend.auction.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,8 +23,8 @@ public class AuctionBid {
     @Column(nullable = false)
     private Long userId;
 
-    @Column(name = "bid_price", nullable = false)
-    private int bidAmount;
+    @Column(name = "bid_price", nullable = false, precision = 19, scale = 2)
+    private BigDecimal bidAmount;
 
     private LocalDateTime createdAt;
 

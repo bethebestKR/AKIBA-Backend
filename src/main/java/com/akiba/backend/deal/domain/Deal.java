@@ -3,6 +3,7 @@ package com.akiba.backend.deal.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -30,8 +31,8 @@ public class Deal {
     @Column(nullable = false)
     private DealType dealType;
 
-    @Column(nullable = false)
-    private int price;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal price;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -18,10 +18,8 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          # 브랜치별로 다른 태그 생성 (main -> latest, dev -> dev)
           TAG=${{ github.ref_name == 'main' && 'latest' || 'dev' }}
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/akiba-backend:$TAG .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/akiba-backend:$TAG
+          docker buildx build --platform linux/amd64 -t ${{ secrets.DOCKERHUB_USERNAME }}/akiba-backend:$TAG --push .
 
   deploy:
     needs: build-and-push
@@ -54,20 +52,33 @@ jobs:
               CURRENT_TAG="dev"
             fi
 
-            # 2. .env 파일 생성 (스프링이 찾는 'NAVER_CLIENT_ID'로 기록)
-            cat <<EOF > ${{ env.CONFIG_DIR }}/.env
-            DB_NAME=${{ env.DB_NAME }}
-            DB_PASSWORD=${{ env.DB_PASSWORD }}
-            DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-            NAVER_CLIENT_ID=$FINAL_NAVER_ID
-            NAVER_CLIENT_SECRET=$FINAL_NAVER_SECRET
-            JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
-            TAG=$CURRENT_TAG
-            EOF
+            export TAG=${{ github.ref_name == 'main' && 'latest' || 'dev' }}
+            export HOST_PORT=${{ github.ref_name == 'main' && '8080' || '8081' }}
+            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
 
-            
-            cd ${{ env.BASE_DIR }}/
-            
+            {
+              echo "DB_NAME=${{ env.DB_NAME }}"
+              echo "DB_PASSWORD=${{ env.DB_PASSWORD }}"
+              echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}"
+              echo "NAVER_CLIENT_ID_DEV=${{ secrets.NAVER_CLIENT_ID_DEV }}"
+              echo "NAVER_CLIENT_SECRET_DEV=${{ secrets.NAVER_CLIENT_SECRET_DEV }}"
+              echo "NAVER_CLIENT_ID_PROD=${{ secrets.NAVER_CLIENT_ID_PROD }}"
+              echo "NAVER_CLIENT_SECRET_PROD=${{ secrets.NAVER_CLIENT_SECRET_PROD }}"
+              echo "NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID_DEV }}"
+              echo "NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET_DEV }}"
+              echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"
+              echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+              echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
+              echo "TAG=${{ github.ref_name == 'main' && 'latest' || 'dev' }}"
+              echo "DISCORD_WEBHOOK_URL=${{ secrets.DISCORD_WEBHOOK_URL }}"
+              echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}"
+              echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+              echo "AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }}"
+              echo "AWS_S3_REGION=${{ secrets.AWS_S3_REGION }}"
 
-            docker compose -f  ${{ env.DOCKER_COMPOSE_FILE }} --env-file ${{ env.CONFIG_DIR }}/.env pull
-            docker compose -f ${{ env.DOCKER_COMPOSE_FILE }} --env-file ${{ env.CONFIG_DIR }}/.env up -d
+            } > ${{ env.CONFIG_DIR }}/.env
+
+
+            cd ${{ env.BASE_DIR }}
+            bash deploy.sh ${{ env.DOCKER_COMPOSE_FILE }} ${{ env.CONFIG_DIR }}/.env
+            

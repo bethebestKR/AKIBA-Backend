@@ -5,12 +5,16 @@
 // ========================================================================
 package com.akiba.backend.auction.dto.request;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,10 +32,18 @@ public class AuctionPostCreateRequest {
     private String specialType;        // NONE, SPECIAL_BENEFIT, LIMITED_EDITION, BOTH
     private Long categoryId;           // 카테고리 (선택)
     @NotNull(message = "startPrice는 필수입니다.")
-    private Integer startPrice;        // 시작가
-    private Integer buyNowPrice;       // 즉시구매가 (선택)
+    @DecimalMin(value = "0", inclusive = false, message = "startPrice 는 0 보다 커야 합니다.")
+    @Digits(integer = 17, fraction = 2)
+    private BigDecimal startPrice;        // 시작가
+
+    @DecimalMin(value = "0", inclusive = false, message = "buyNowPrice 는 0 보다 커야 합니다.")
+    @Digits(integer = 17, fraction = 2)
+    private BigDecimal buyNowPrice;       // 즉시구매가 (선택)
+
     @NotNull(message = "bidStep은 필수입니다.")
-    private Integer bidStep;           // 입찰 단위
+    @DecimalMin(value = "0", inclusive = false, message = "bidStep 는 0 보다 커야 합니다.")
+    @Digits(integer = 17, fraction = 2)
+    private BigDecimal bidStep;           // 입찰 단위
     @NotNull(message = "endsAt은 필수입니다.")
     private LocalDateTime endsAt;      // 경매 종료 시간
     @NotBlank(message = "deliveryMethod는 필수입니다.")

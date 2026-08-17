@@ -111,9 +111,9 @@ public class BoardService {
     }
 
     @Transactional
-    public BoardDtos.PostDetailResponse createPost(BoardCode boardCode, BoardDtos.CreatePostRequest request) {
+    public BoardDtos.PostDetailResponse createPost(BoardCode boardCode, Long userId, BoardDtos.CreatePostRequest request) {
         Board board = getBoard(boardCode);
-        User user = getUser(request.userId());
+        User user = getUser(userId);
         List<String> imageUrls = normalizeImages(request.imageUrls());
         List<String> hashtags = normalizeHashtags(request.hashtags());
 
@@ -145,10 +145,10 @@ public class BoardService {
     }
 
     @Transactional
-    public BoardDtos.PostDetailResponse updatePost(BoardCode boardCode, Long postId, BoardDtos.UpdatePostRequest request) {
+    public BoardDtos.PostDetailResponse updatePost(BoardCode boardCode, Long postId, Long userId, BoardDtos.UpdatePostRequest request) {
         Board board = getBoard(boardCode);
         BoardPost post = getPost(board.getBoardId(), postId);
-        validatePostOwner(post, request.userId());
+        validatePostOwner(post, userId);
 
         List<String> imageUrls = normalizeImages(request.imageUrls());
         List<String> hashtags = normalizeHashtags(request.hashtags());
@@ -184,10 +184,10 @@ public class BoardService {
     }
 
     @Transactional
-    public BoardDtos.CommentResponse createComment(BoardCode boardCode, Long postId, BoardDtos.CreateCommentRequest request) {
+    public BoardDtos.CommentResponse createComment(BoardCode boardCode, Long postId, Long userId, BoardDtos.CreateCommentRequest request) {
         Board board = getBoard(boardCode);
         BoardPost post = getPost(board.getBoardId(), postId);
-        User user = getUser(request.userId());
+        User user = getUser(userId);
         validateParentCommentForReply(post.getPostId(), request.parentId());
 
         BoardComment comment = boardCommentRepository.save(BoardComment.builder()
@@ -239,19 +239,19 @@ public class BoardService {
     }
 
     @Transactional
-    public BoardDtos.PostDetailResponse toggleLike(BoardCode boardCode, Long postId, BoardDtos.ToggleLikeRequest request) {
+    public BoardDtos.PostDetailResponse toggleLike(BoardCode boardCode, Long postId, Long userId) {
         Board board = getBoard(boardCode);
         BoardPost post = getPost(board.getBoardId(), postId);
-        getUser(request.userId());
+        getUser(userId);
 
-        Optional<BoardPostLike> likeOpt = boardPostLikeRepository.findByPostIdAndUserId(post.getPostId(), request.userId());
+        Optional<BoardPostLike> likeOpt = boardPostLikeRepository.findByPostIdAndUserId(post.getPostId(), userId);
         if (likeOpt.isPresent()) {
             boardPostLikeRepository.delete(likeOpt.get());
             post.decreaseLikeCount();
         } else {
             boardPostLikeRepository.save(BoardPostLike.builder()
                     .postId(post.getPostId())
-                    .userId(request.userId())
+                    .userId(userId)
                     .build());
             post.increaseLikeCount();
         }
@@ -261,14 +261,14 @@ public class BoardService {
     }
 
     @Transactional
-    public BoardDtos.CommentLikeToggleResponse toggleCommentLike(BoardCode boardCode, Long commentId, BoardDtos.ToggleCommentLikeRequest request) {
+    public BoardDtos.CommentLikeToggleResponse toggleCommentLike(BoardCode boardCode, Long commentId, Long userId) {
         Board board = getBoard(boardCode);
         BoardComment comment = boardCommentRepository.findById(commentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."));
         getPost(board.getBoardId(), comment.getPostId());
-        getUser(request.userId());
+        getUser(userId);
 
-        Optional<BoardCommentLike> likeOpt = boardCommentLikeRepository.findByCommentIdAndUserId(comment.getCommentId(), request.userId());
+        Optional<BoardCommentLike> likeOpt = boardCommentLikeRepository.findByCommentIdAndUserId(comment.getCommentId(), userId);
         boolean liked;
         if (likeOpt.isPresent()) {
             boardCommentLikeRepository.delete(likeOpt.get());
@@ -277,7 +277,7 @@ public class BoardService {
         } else {
             boardCommentLikeRepository.save(BoardCommentLike.builder()
                     .commentId(comment.getCommentId())
-                    .userId(request.userId())
+                    .userId(userId)
                     .build());
             comment.increaseLikeCount();
             liked = true;
@@ -288,16 +288,16 @@ public class BoardService {
     }
 
     @Transactional
-    public BoardDtos.PostDetailResponse vote(BoardCode boardCode, Long postId, BoardDtos.VoteRequest request) {
+    public BoardDtos.PostDetailResponse vote(BoardCode boardCode, Long postId, Long userId, BoardDtos.VoteRequest request) {
         if (boardCode != BoardCode.AUTHENTICITY) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "정품감정 게시판에서만 투표할 수 있습니다.");
         }
 
         Board board = getBoard(boardCode);
         BoardPost post = getPost(board.getBoardId(), postId);
-        getUser(request.userId());
+        getUser(userId);
 
-        Optional<BoardPostVote> existingVoteOpt = boardPostVoteRepository.findByPostIdAndUserId(post.getPostId(), request.userId());
+        Optional<BoardPostVote> existingVoteOpt = boardPostVoteRepository.findByPostIdAndUserId(post.getPostId(), userId);
 
         if (existingVoteOpt.isPresent()) {
             BoardPostVote existingVote = existingVoteOpt.get();
@@ -311,7 +311,7 @@ public class BoardService {
         } else {
             boardPostVoteRepository.save(BoardPostVote.builder()
                     .postId(post.getPostId())
-                    .userId(request.userId())
+                    .userId(userId)
                     .choice(request.choice())
                     .build());
             post.increaseVoteCount(request.choice());

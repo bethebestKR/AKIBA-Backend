@@ -4,7 +4,6 @@ import com.akiba.backend.media.domain.MediaFile;
 import com.akiba.backend.media.dto.response.MediaUploadResponse;
 import com.akiba.backend.media.service.MediaService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,9 +24,9 @@ public class MediaController {
     }
 
     @GetMapping("/files/{mediaId}")
-    public ResponseEntity<Resource> getFile(@PathVariable Long mediaId) {
+    public ResponseEntity<byte[]> getFile(@PathVariable Long mediaId) {
         MediaFile mediaFile = mediaService.getMedia(mediaId);
-        Resource resource = mediaService.loadAsResource(mediaId);
+        byte[] imageBytes = mediaService.downloadFromS3(mediaId);
 
         MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
         if (mediaFile.getContentType() != null && !mediaFile.getContentType().isBlank()) {
@@ -36,7 +35,7 @@ public class MediaController {
 
         return ResponseEntity.ok()
                 .contentType(mediaType)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
-                .body(resource);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + mediaFile.getOriginalFilename() + "\"")
+                .body(imageBytes);
     }
 }

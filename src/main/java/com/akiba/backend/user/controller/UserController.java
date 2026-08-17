@@ -2,12 +2,15 @@ package com.akiba.backend.user.controller;
 
 import com.akiba.backend.user.dto.*;
 import com.akiba.backend.user.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import com.akiba.backend.config.jwt.TokenProvider;
+
 
 @RestController
 @RequestMapping("/api/users")
@@ -15,16 +18,17 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final TokenProvider tokenProvider;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = userService.login(request);
         return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/nickname")
     public ResponseEntity<NicknameResponse> updateNickname(
-            @RequestBody NicknameRequest request,
+            @Valid @RequestBody NicknameRequest request,
             @AuthenticationPrincipal Long userId) {
         NicknameResponse response = userService.updateNickname(userId, request);
         return ResponseEntity.ok(response);
@@ -57,13 +61,26 @@ public class UserController {
 
     @PutMapping("/me")
     public ResponseEntity<UpdateUserResponse> updateMyInfo(@AuthenticationPrincipal Long userId,
-                                                           @RequestBody UpdateUserRequest request) {
+                                                           @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.updateMyInfo(userId, request));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<RefreshTokenResponse> refresh(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<RefreshTokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(userService.refresh(request));
     }
 
+    @PostMapping("/test-login")
+    public ResponseEntity<LoginResponse> testLogin(@RequestParam Long userId) {
+        String accessToken = tokenProvider.generateAccessToken(userId);
+        String refreshToken = tokenProvider.generateRefreshToken(userId);
+
+        return ResponseEntity.ok(LoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .userId(userId)
+                .nickname("테스트유저")
+                .isNewUser(false)
+                .build());
+    }
 }

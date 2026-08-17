@@ -6,8 +6,11 @@
 package com.akiba.backend.auction.dto.response;
 
 import lombok.Builder;
+import java.math.BigDecimal;
 import lombok.Getter;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 @Getter
 @Builder
@@ -15,12 +18,12 @@ public class MyAuctionResponse {
 
     private Long postId;
     private String title;
-    private int startPrice;
-    private int currentHighestBid;
-    private Integer buyNowPrice;
+    private BigDecimal startPrice;
+    private BigDecimal currentHighestBid;
+    private BigDecimal buyNowPrice;
     private int bidCount;
     private Integer myBidPrice;        // 내 입찰가 (내 입찰 현황에서만)
-    private Integer finalPrice;        // 낙찰가 (낙찰 성공에서만)
+    private BigDecimal finalPrice;        // 낙찰가 (낙찰 성공에서만)
     private String status;             // 경매 상태
     private LocalDateTime endsAt;
     private String thumbnailUrl;
