@@ -240,16 +240,3 @@ java -jar build/libs/akiba-backend-0.0.1-SNAPSHOT.jar
 Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 
 ---
-
-## 🗺 로드맵 (진행 예정)
-
-- [ ] **검색 고도화** — JPA Specification + LIKE → MySQL ngram Full-Text Search 전환
-- [ ] **Apple Sign-In** 추가 (프론트와 Bundle ID 연동)
-- [ ] 알림 발송 로직 — 입찰/댓글/채팅 이벤트 실시간 연동
-- [ ] 거래(Deal) 생성·완료·후기 작성 API
-- [ ] 테스트 코드 작성 (현재 `-x test` 빌드)
-- [ ] 프로덕션 배포 마무리 (`test-login` 엔드포인트 제거, prod nginx conf 추가)
-
----
-
-> 본 문서는 `develop` 브랜치 기준으로 작성되었습니다.
